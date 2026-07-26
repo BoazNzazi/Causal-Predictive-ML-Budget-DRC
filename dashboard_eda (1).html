@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRC FiscalPanel — EDA Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+    :root {
+      --navy: #1A3A5C;
+      --red: #E84B3A;
+      --blue: #4C9BE8;
+      --green: #2ECC71;
+      --gold: #F5A623;
+      --light: #F0F4F8;
+      --dark: #0D1F33;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--light);
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    .header {
+      background: var(--navy);
+      padding: 28px 36px;
+      color: #fff;
+    }
+    .header-label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #7BA7C9;
+      margin-bottom: 8px;
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .header-meta {
+      display: flex;
+      gap: 24px;
+      font-size: 13px;
+      color: #A8C4D8;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 20px 36px 0;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Source Sans 3', sans-serif;
+      transition: all 0.2s;
+      background: #fff;
+      color: var(--navy);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .tab-btn.active {
+      background: var(--navy);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(26,58,92,0.35);
+    }
+
+    /* CONTENT */
+    .content {
+      padding: 24px 36px;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* CARDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border-left: 4px solid var(--navy);
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .stat-sub {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+    .stat-flag {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* CHART CONTAINERS */
+    .chart-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .chart-box h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .chart-sub {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    /* 2-COL GRID */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    /* REPARTITION BOXES */
+    .repartition {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .rep-box {
+      flex: 1;
+      text-align: center;
+      border-radius: 10px;
+      padding: 16px 8px;
+      border: 2px solid transparent;
+    }
+    .rep-val { font-size: 26px; font-weight: 800; }
+    .rep-label { font-size: 12px; font-weight: 700; margin-top: 4px; }
+    .rep-desc { font-size: 11px; color: #999; }
+
+    /* ALERTS */
+    .alert {
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .alert-icon { font-size: 16px; flex-shrink: 0; }
+
+    /* PERIODE CARDS */
+    .periode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .periode-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .periode-annee { font-size: 11px; color: #888; }
+    .periode-titre { font-weight: 700; font-size: 13px; margin: 4px 0 10px; }
+    .periode-stat { font-size: 13px; margin: 2px 0; }
+    .periode-note { font-size: 11px; color: #888; margin-top: 8px; font-style: italic; }
+
+    /* MACRO POINTS */
+    .macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .macro-card {
+      background: var(--light);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .macro-icon { font-size: 20px; margin-bottom: 6px; }
+    .macro-titre { font-weight: 700; color: var(--navy); font-size: 12px; margin-bottom: 6px; }
+    .macro-texte { font-size: 11px; color: #555; line-height: 1.5; }
+
+    /* FOOTER */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    /* TABLE CORR */
+    .corr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .corr-table th { background: var(--navy); color: #fff; padding: 10px 14px; text-align: left; font-size: 12px; }
+    .corr-table td { padding: 8px 14px; border-bottom: 1px solid #f0f0f0; }
+    .corr-table tr:hover td { background: #f8f9fa; }
+    .corr-bar { height: 10px; border-radius: 5px; display: inline-block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Mémoire M2 IA — Analyse Exploratoire</div>
+  <h1>Finances Publiques RDC — DRC_FiscalPanel_1996_2023</h1>
+  <div class="header-meta">
+    <span>📊 784 observations</span>
+    <span>🏛️ 28 fonctions budgétaires</span>
+    <span>📅 28 années (1996–2023)</span>
+    <span>🔢 26 variables</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('overview')">Vue d'ensemble</button>
+  <button class="tab-btn" onclick="showTab('evolution')">Taux d'exécution</button>
+  <button class="tab-btn" onclick="showTab('fonctions')">Par fonction</button>
+  <button class="tab-btn" onclick="showTab('macro')">Macro</button>
+  <button class="tab-btn" onclick="showTab('correlations')">Corrélations</button>
+</div>
+
+<div class="content">
+
+  <!-- TAB 1 : Vue d'ensemble -->
+  <div id="tab-overview" class="tab-panel active">
+    <div class="stats-grid">
+      <div class="stat-card" style="border-color:#E84B3A">
+        <div class="stat-label">Taux exec. courant moyen</div>
+        <div class="stat-value" style="color:#E84B3A">119.4%</div>
+        <div class="stat-sub">Médiane : 77.3% — forte asymétrie</div>
+        <div class="stat-flag" style="color:#E84B3A">⚠️ Moy > Med → sur-exécutions extrêmes</div>
+      </div>
+      <div class="stat-card" style="border-color:#1A3A5C">
+        <div class="stat-label">Taux exec. capital moyen</div>
+        <div class="stat-value" style="color:#1A3A5C">77.5%</div>
+        <div class="stat-sub">Médiane : 31.0% — sous-exécution chronique</div>
+        <div class="stat-flag" style="color:#E84B3A">⚠️ 71.9% des obs sous 80%</div>
+      </div>
+      <div class="stat-card" style="border-color:#F5A623">
+        <div class="stat-label">Sous-exécution courante</div>
+        <div class="stat-value" style="color:#F5A623">51.0%</div>
+        <div class="stat-sub">des observations &lt; 80%</div>
+      </div>
+      <div class="stat-card" style="border-color:#2ECC71">
+        <div class="stat-label">Sur-exécution courante</div>
+        <div class="stat-value" style="color:#2ECC71">39.9%</div>
+        <div class="stat-sub">des observations &gt; 110%</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="chart-box">
+        <h3>Répartition — Taux courant</h3>
+        <div class="repartition">
+          <div class="rep-box" style="background:#E84B3A15;border-color:#E84B3A30">
+            <div class="rep-val" style="color:#E84B3A">51.0%</div>
+            <div class="rep-label" style="color:#E84B3A">Sous-exec</div>
+            <div class="rep-desc">&lt; 80%</div>
+          </div>
+          <div class="rep-box" style="background:#2ECC7115;border-color:#2ECC7130">
+            <div class="rep-val" style="color:#2ECC71">9.1%</div>
+            <div class="rep-label" style="color:#2ECC71">Normal</div>
+            <div class="rep-desc">80–110%</div>
+          </div>
+          <div class="rep-box" style="background:#F5A62315;border-color:#F5A62330">
+            <div class="rep-val" style="color:#F5A623">39.9%</div>
+            <div class="rep-label" style="color:#F5A623">Sur-exec</div>
+            <div class="rep-desc">&gt; 110%</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <h3>Répartition — Taux capital</h3>
+        <div class="repartition">
+          <div class="rep-box" style="background:#E84B3A15;border-color:#E84B3A30">
+            <div class="rep-val" style="color:#E84B3A">71.9%</div>
+            <div class="rep-label" style="color:#E84B3A">Sous-exec</div>
+            <div class="rep-desc">&lt; 80%</div>
+          </div>
+          <div class="rep-box" style="background:#2ECC7115;border-color:#2ECC7130">
+            <div class="rep-val" style="color:#2ECC71">5.4%</div>
+            <div class="rep-label" style="color:#2ECC71">Normal</div>
+            <div class="rep-desc">80–110%</div>
+          </div>
+          <div class="rep-box" style="background:#F5A62315;border-color:#F5A62330">
+            <div class="rep-val" style="color:#F5A623">22.7%</div>
+            <div class="rep-label" style="color:#F5A623">Sur-exec</div>
+            <div class="rep-desc">&gt; 110%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert" style="background:#E84B3A10;border:1px solid #E84B3A30;color:#c0392b">
+      <span class="alert-icon">🔍</span>
+      <span>Le taux courant a une <strong>moyenne de 119.4% mais une médiane de 77.3%</strong> — forte asymétrie droite causée par des sur-exécutions extrêmes (PRESIDENCE 260%, FINANCES_PUBLIQUES 288%). La médiane est l'indicateur central à retenir pour le mémoire.</span>
+    </div>
+    <div class="alert" style="background:#1A3A5C10;border:1px solid #1A3A5C30;color:#1A3A5C">
+      <span class="alert-icon">📉</span>
+      <span>Le capital est <strong>chroniquement sous-exécuté</strong> (médiane 31%) — 71.9% des observations sont sous 80%. La RDC n'arrive pas à exécuter ses investissements. C'est la variable cible la plus intéressante scientifiquement.</span>
+    </div>
+    <div class="alert" style="background:#F5A62310;border:1px solid #F5A62330;color:#d68910">
+      <span class="alert-icon">⚠️</span>
+      <span><strong>Anomalie 2005</strong> : taux courant = 21%, capital = 1%. Probable rupture dans les données sources. À traiter comme outlier dans les modèles ML ou à exclure de certaines analyses.</span>
+    </div>
+  </div>
+
+  <!-- TAB 2 : Évolution -->
+  <div id="tab-evolution" class="tab-panel">
+    <div class="chart-box">
+      <h3>Évolution du taux d'exécution — 1996 à 2023</h3>
+      <div class="chart-sub">Lignes verticales rouges = années électorales (2006, 2011, 2018, 2023)</div>
+      <canvas id="chartEvolution" height="100"></canvas>
+    </div>
+    <div class="periode-grid">
+      <div class="periode-card" style="border-top:3px solid #E84B3A">
+        <div class="periode-annee">1996–2002</div>
+        <div class="periode-titre" style="color:#E84B3A">Période de guerre</div>
+        <div class="periode-stat">Courant : <strong>110.2%</strong></div>
+        <div class="periode-stat">Capital : <strong>48.6%</strong></div>
+        <div class="periode-note">Hyperinflation + conflit armé → sur-exécution nominale</div>
+      </div>
+      <div class="periode-card" style="border-top:3px solid #F5A623">
+        <div class="periode-annee">2006–2016</div>
+        <div class="periode-titre" style="color:#F5A623">Transition politique</div>
+        <div class="periode-stat">Courant : <strong>79.6%</strong></div>
+        <div class="periode-stat">Capital : <strong>43.5%</strong></div>
+        <div class="periode-note">Post-élections → sous-exécution structurelle</div>
+      </div>
+      <div class="periode-card" style="border-top:3px solid #2ECC71">
+        <div class="periode-annee">2018–2023</div>
+        <div class="periode-titre" style="color:#2ECC71">Période récente</div>
+        <div class="periode-stat">Courant : <strong>98.2%</strong></div>
+        <div class="periode-stat">Capital : <strong>25.8%</strong></div>
+        <div class="periode-note">Amélioration courant, capital toujours faible</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3 : Par fonction -->
+  <div id="tab-fonctions" class="tab-panel">
+    <div class="chart-box">
+      <h3>Taux d'exécution moyen par fonction (1996–2023)</h3>
+      <div class="chart-sub">Bleu foncé = courant | Bleu clair = capital — seuil 100% en gris</div>
+      <canvas id="chartFonctions" height="180"></canvas>
+    </div>
+    <div class="grid-2">
+      <div class="alert" style="background:#E84B3A10;border:1px solid #E84B3A30;color:#c0392b">
+        <span class="alert-icon">🔴</span>
+        <span><strong>Sur-exécuteurs chroniques</strong> : PRESIDENCE (260%), FINANCES_PUBLIQUES (288%), PRIMATURE (238%), DEFENSE (220%). Ces fonctions dépensent systématiquement plus que prévu — signal de mauvaise planification ou dépenses hors-budget.</span>
+      </div>
+      <div class="alert" style="background:#1A3A5C10;border:1px solid #1A3A5C30;color:#1A3A5C">
+        <span class="alert-icon">📉</span>
+        <span><strong>Sous-exécuteurs</strong> : CULTURE (26%), SERVICES_GENERAUX (56%), ECONOMIE (69%). Le capital est quasi-nul pour ECONOMIE (2.2%) et ADMINISTRATION_TERRITOIRE (0%). Ces ministères n'investissent pratiquement pas.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4 : Macro -->
+  <div id="tab-macro" class="tab-panel">
+    <div class="grid-2">
+      <div class="chart-box">
+        <h3>Croissance PIB (%) — 1996–2023</h3>
+        <canvas id="chartCroissance" height="150"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>Recettes État (% PIB) — 1996–2023</h3>
+        <canvas id="chartRecettes" height="150"></canvas>
+      </div>
+    </div>
+    <div class="chart-box" style="margin-bottom:16px">
+      <h3>Points clés macroéconomiques</h3>
+      <div class="macro-grid" style="margin-top:12px">
+        <div class="macro-card">
+          <div class="macro-icon">💥</div>
+          <div class="macro-titre">1996–2001 : Hyperinflation</div>
+          <div class="macro-texte">Inflation jusqu'à 514% en 2000. Croissance négative 5 années consécutives. Budget en monnaie locale sans signification réelle.</div>
+        </div>
+        <div class="macro-card">
+          <div class="macro-icon">📈</div>
+          <div class="macro-titre">2003–2008 : Reprise forte</div>
+          <div class="macro-texte">Croissance 6–9% par an. Stabilisation monétaire. Premières élections démocratiques (2006). PIB/hab passe de 161$ à 352$.</div>
+        </div>
+        <div class="macro-card">
+          <div class="macro-icon">⚡</div>
+          <div class="macro-titre">2016–2020 : Vulnérabilité</div>
+          <div class="macro-texte">Chute des matières premières. Croissance quasi-nulle en 2016 (0.4%). COVID-19 en 2020 (0.8%). Recettes publiques sous pression.</div>
+        </div>
+      </div>
+    </div>
+    <div class="alert" style="background:#2ECC7110;border:1px solid #2ECC7130;color:#1a7a3a">
+      <span class="alert-icon">✅</span>
+      <span><strong>RECETTES_ETAT_PCT_PIB corrigée</strong> — valeurs WDI erronées (~10⁻⁸) remplacées par IMF WEO. Moyenne : 9.6% du PIB (3.9% en 1999 → 14.1% en 2012). Corrélation avec taux d'exécution : <strong>r = -0.143</strong> — quand les recettes augmentent, la discipline budgétaire s'améliore.</span>
+    </div>
+  </div>
+
+  <!-- TAB 5 : Corrélations -->
+  <div id="tab-correlations" class="tab-panel">
+    <div class="chart-box">
+      <h3>Corrélations avec TAUX_EXEC_COURANT</h3>
+      <div class="chart-sub">Rouge = corrélation positive | Bleu = corrélation négative</div>
+      <canvas id="chartCorr" height="80"></canvas>
+    </div>
+    <table class="corr-table" style="margin-bottom:16px">
+      <thead>
+        <tr><th>Variable</th><th>Corrélation</th><th>Visualisation</th><th>Interprétation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>DETTE_PUBLIQUE_PCT_PIB</td><td style="color:#E84B3A;font-weight:700">+0.219</td><td><span class="corr-bar" style="width:88px;background:#E84B3A"></span></td><td style="font-size:11px">Plus de dette → plus de sur-exécution</td></tr>
+        <tr><td>TAUX_EXEC_CAPITAL</td><td style="color:#E84B3A;font-weight:700">+0.171</td><td><span class="corr-bar" style="width:68px;background:#E84B3A"></span></td><td style="font-size:11px">Cohérence courant/capital</td></tr>
+        <tr><td>INFLATION_CPI_PCT</td><td style="color:#E84B3A;font-weight:700">+0.119</td><td><span class="corr-bar" style="width:48px;background:#E84B3A"></span></td><td style="font-size:11px">Instabilité → dépassements budgétaires</td></tr>
+        <tr><td>WGI_EFFICACITE_GOUV</td><td style="color:#E84B3A">+0.063</td><td><span class="corr-bar" style="width:25px;background:#E84B3A"></span></td><td style="font-size:11px">Faible signal</td></tr>
+        <tr><td>CROISSANCE_PIB_PCT</td><td style="color:#1A3A5C">-0.050</td><td><span class="corr-bar" style="width:20px;background:#1A3A5C"></span></td><td style="font-size:11px">Faible signal</td></tr>
+        <tr><td>RECETTES_ETAT_PCT_PIB</td><td style="color:#1A3A5C;font-weight:700">-0.143</td><td><span class="corr-bar" style="width:57px;background:#1A3A5C"></span></td><td style="font-size:11px">Recettes élevées → meilleure discipline budgétaire (corrigé IMF WEO)</td></tr>
+        <tr><td>WGI_CONTROLE_CORRUPTION</td><td style="color:#1A3A5C">-0.112</td><td><span class="corr-bar" style="width:45px;background:#1A3A5C"></span></td><td style="font-size:11px">Moins de corruption → moins de dépassements</td></tr>
+        <tr><td>TAUX_CHANGE_CDF_USD</td><td style="color:#1A3A5C">-0.116</td><td><span class="corr-bar" style="width:46px;background:#1A3A5C"></span></td><td style="font-size:11px">Dépréciation → contrainte budgétaire</td></tr>
+        <tr><td>PIB_PAR_HABITANT_USD</td><td style="color:#1A3A5C;font-weight:700">-0.135</td><td><span class="corr-bar" style="width:54px;background:#1A3A5C"></span></td><td style="font-size:11px">Développement → meilleure discipline</td></tr>
+      </tbody>
+    </table>
+    <div class="alert" style="background:#1A3A5C10;border:1px solid #1A3A5C30;color:#1A3A5C">
+      <span class="alert-icon">📊</span>
+      <span>Corrélations toutes faibles (&lt;0.25) — normal pour un panel hétérogène de 28 fonctions. Les modèles ML non-linéaires (XGBoost, Random Forest) capteront des relations que la corrélation linéaire ne voit pas.</span>
+    </div>
+    <div class="alert" style="background:#E84B3A10;border:1px solid #E84B3A30;color:#c0392b">
+      <span class="alert-icon">🔴</span>
+      <span><strong>DETTE_PUBLIQUE (r=+0.219)</strong> : plus de dette → plus de sur-exécution. Signal économique fort. <strong>RECETTES (r=-0.143, corrigé)</strong> : recettes élevées → meilleure discipline. C'est la 3ème corrélation la plus forte — confirme l'importance de la mobilisation fiscale.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">DRC_FiscalPanel_1996_2023 · 784 obs · 26 variables · M2 IA</div>
+
+<script>
+// ── DONNÉES
+const annees = [1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023];
+const tauxCourant = [168.8,61.2,104.5,229.4,125.2,126.4,88.2,87.6,91.4,21.0,83.8,70.8,75.2,79.4,54.2,58.6,82.8,125.8,125.4,84.7,84.7,73.0,101.5,105.4,98.6,101.6,87.5,96.1];
+const tauxCapital = [58.6,88.6,7.1,60.8,11.6,80.2,59.5,121.8,287.9,1.0,187.1,34.4,56.8,51.4,21.7,16.6,24.5,19.6,13.6,17.7,41.4,22.6,31.2,33.3,23.7,29.6,14.9,22.0];
+const croissance = [-1.0,-5.6,-1.6,-4.3,-6.9,-2.1,2.9,5.6,6.7,6.1,5.1,8.5,7.4,0.6,7.8,7.6,8.7,9.6,7.3,6.4,0.4,4.2,6.1,0.6,0.8,6.4,9.3,8.5];
+const pib = [127,132,131,96,378,143,162,161,181,215,255,294,353,280,352,373,410,460,489,496,460,431,518,504,486,596,688,660];
+const elections = [2006,2011,2018,2023];
+
+const recettes = [4.2,4.8,4.1,3.9,4.5,5.2,6.1,7.3,8.9,9.2,10.1,10.8,11.2,10.4,11.8,13.2,14.1,13.8,13.5,12.1,10.9,10.2,11.4,10.8,9.8,11.2,13.1,12.8];
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  // Initialiser les graphiques au besoin
+  if (name === 'evolution' && !window.chartEvoDone) { initEvolution(); window.chartEvoDone = true; }
+  if (name === 'fonctions' && !window.chartFctDone) { initFonctions(); window.chartFctDone = true; }
+  if (name === 'macro' && !window.chartMacroDone) { initMacro(); window.chartMacroDone = true; }
+  if (name === 'correlations' && !window.chartCorrDone) { initCorr(); window.chartCorrDone = true; }
+}
+
+// Annotations électorales via plugin-like approach
+function electionAnnotations(ctx, chartArea, data) {
+  elections.forEach(yr => {
+    const idx = annees.indexOf(yr);
+    if (idx < 0) return;
+    const x = chartArea.left + (idx / (annees.length - 1)) * chartArea.width;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(232,75,58,0.4)';
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, chartArea.top);
+    ctx.lineTo(x, chartArea.bottom);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+const electionPlugin = {
+  id: 'electionLines',
+  afterDraw(chart) {
+    const { ctx, chartArea, data } = chart;
+    if (!chartArea) return;
+    electionAnnotations(ctx, chartArea, data);
+  }
+};
+
+// ── GRAPHIQUE ÉVOLUTION
+function initEvolution() {
+  new Chart(document.getElementById('chartEvolution'), {
+    type: 'line',
+    plugins: [electionPlugin],
+    data: {
+      labels: annees,
+      datasets: [
+        {
+          label: 'Taux courant (%)',
+          data: tauxCourant,
+          borderColor: '#1A3A5C',
+          backgroundColor: 'rgba(26,58,92,0.05)',
+          borderWidth: 2.5,
+          pointRadius: 3,
+          tension: 0.3,
+          fill: true
+        },
+        {
+          label: 'Taux capital (%)',
+          data: tauxCapital,
+          borderColor: '#4C9BE8',
+          backgroundColor: 'rgba(76,155,232,0.05)',
+          borderWidth: 2.5,
+          pointRadius: 3,
+          borderDash: [6, 3],
+          tension: 0.3,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: {
+          ticks: { callback: v => v + '%' },
+          grid: { color: '#f0f0f0' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── GRAPHIQUE FONCTIONS
+function initFonctions() {
+  const labels = ['CULTURE','SERVICES_GEN.','ECONOMIE','JUSTICE','AFFAIRES_SOC.','AGRICULTURE','EDUCATION','PORTEFEUILLE','ENVIRONNEMENT','TRAVAIL','MINES_ENERGIE','PLAN','DEP.EXCEPT.','ADMIN.TERRIT.','URBANISME','PARLEMENT','SANTE','TRANSPORTS','TRAVAUX_PUB.','COMM.MEDIAS','AFF.ETRANG.','DEFENSE_SEC.','PRIMATURE','PRESIDENCE','FINANCES_PUB.'];
+  const courant = [25.6,55.7,69.0,68.0,68.4,72.5,79.2,79.5,80.1,83.2,88.7,93.1,94.7,94.9,110.9,112.6,122.3,124.0,131.7,136.9,197.4,219.8,238.5,259.5,288.4];
+  const capital = [58.8,95.9,2.2,68.8,49.4,45.4,27.5,24.7,68.3,79.9,51.9,51.6,0,0,95.0,80.7,31.7,49.9,113.5,69.7,125.8,159.7,108.7,141.9,84.3];
+
+  new Chart(document.getElementById('chartFonctions'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Courant', data: courant, backgroundColor: 'rgba(26,58,92,0.8)', borderRadius: 3 },
+        { label: 'Capital',  data: capital, backgroundColor: 'rgba(76,155,232,0.7)', borderRadius: 3 }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: {
+          ticks: { callback: v => v + '%' },
+          grid: { color: '#f5f5f5' }
+        },
+        y: { ticks: { font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── GRAPHIQUE MACRO
+function initMacro() {
+  const colors = croissance.map(v => v >= 0 ? 'rgba(46,204,113,0.8)' : 'rgba(232,75,58,0.8)');
+  new Chart(document.getElementById('chartCroissance'), {
+    type: 'bar',
+    plugins: [electionPlugin],
+    data: {
+      labels: annees,
+      datasets: [{ label: 'Croissance PIB %', data: croissance, backgroundColor: colors, borderRadius: 3 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } },
+        x: { ticks: { font: { size: 9 } }, grid: { display: false } }
+      }
+    }
+  });
+  new Chart(document.getElementById('chartRecettes'), {
+    type: 'line',
+    plugins: [electionPlugin],
+    data: {
+      labels: annees,
+      datasets: [{
+        label: 'Recettes État % PIB',
+        data: recettes,
+        borderColor: '#2ECC71',
+        backgroundColor: 'rgba(46,204,113,0.08)',
+        borderWidth: 2.5,
+        pointRadius: 3,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' }, min: 0, max: 18 },
+        x: { ticks: { font: { size: 9 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── GRAPHIQUE CORRÉLATIONS
+function initCorr() {
+  const labels = ['RECETTES','PIB/HAB.','TAUX_CHANGE','WGI_CORR.','CROISSANCE','WGI_EFFIC.','RENTE_RES.','INFLATION','TAUX_EXEC_K','DETTE_PUB.'];
+  const vals   = [-0.143,-0.135,-0.116,-0.112,-0.050,0.063,0.032,0.119,0.171,0.219];
+  const colors = vals.map(v => v >= 0 ? 'rgba(232,75,58,0.8)' : 'rgba(26,58,92,0.8)');
+  new Chart(document.getElementById('chartCorr'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Corrélation', data: vals, backgroundColor: colors, borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { min: -0.25, max: 0.25, grid: { color: '#f0f0f0' } },
+        y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// Init premier onglet
+initEvolution(); window.chartEvoDone = true;
+</script>
+</body>
+</html>
